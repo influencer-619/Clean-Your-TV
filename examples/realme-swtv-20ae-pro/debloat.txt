@@ -1,0 +1,59 @@
+# realme Smart TV (Skyworth SWTV-20AE-PRO, device SW4H_FF, board SW4, MediaTek m7332), India
+# Android TV 11 (API 30), firmware RTM5.220609.106 (20231126), security patch 2023-10-06.
+# Fingerprint realme/SW4H_FF_realme/SW4H_FF:11/RTM5.220609.106/20231126:user/release-keys.
+# armeabi-v7a, ~1.7 GB RAM, 1920x1080 @ 320 dpi.
+# Same SW4H firmware family as examples/tornado-65ua1400e. Owner keep list: YouTube, HDMI,
+# Google Assistant / mic, Chromecast, Play Store updates.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/realme-swtv-20ae-pro/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/realme-swtv-20ae-pro/debloat.txt
+# Everything is DISABLED, not uninstalled.
+#
+# KEEP (do not add here):
+# - com.google.android.youtube.tv, com.android.vending, com.google.android.gms, com.google.android.gsf
+# - com.google.android.katniss, com.google.android.tv.assistant, com.google.android.tts (mic / Assistant)
+# - com.google.android.apps.mediashell, com.smartdevice.dtv.icast (Chromecast / CastPlay)
+# - com.smartdevice.livetv, com.mediatek.tvinput, fusion.android.tv.demo (HDMI / Input key)
+# - com.google.android.tungsten.setupwraith (owns saved Wi-Fi on this set)
+# - com.google.android.tvlauncher until com.gathin.tvhome owns Home
+# - com.smartdevice.duplebluetooth (pairing a new remote)
+# Already disabled at the factory / by the owner, so not listed: com.sky.market, com.qjy.browser,
+# com.netflix.ninja, com.amazon.amazonvideo.livingroom, com.google.android.youtube.tvmusic,
+# com.google.android.videos, com.google.android.play.games, com.smartdevice.tvworkwithalexa.
+#
+# Launcher: set reduced_motion, and turn off ambient_glow / focus_overshoot / advanced_effects.
+# Glass: cinematic_home false. setupwraith must stay: it owns the saved Wi-Fi network.
+
+# --- Batch 1: Google leftover uploaders and Skyworth Shop / partner rows
+com.google.android.feedback
+com.google.android.partnersetup
+com.google.android.onetimeinitializer
+com.android.printspooler
+com.smartdevice.leanbacklauncher.customizer
+
+# --- Batch 2: Skyworth ACR, ads, shop-floor promo, first-run leftover
+com.smartdevice.acr.recommendation
+android.autoinstalls.config.SW
+com.smartdevice.epopplayer
+com.mstar.android.tv.disclaimercustomization
+
+# --- Batch 3: unused Android leftovers
+com.android.htmlviewer
+com.android.backupconfirm
+com.android.sharedstoragebackup
+com.android.wallpaperbackup
+com.android.dynsystem
+com.android.cts.ctsshim
+com.android.cts.priv.ctsshim
+com.google.android.syncadapters.calendar
+com.android.providers.calendar
+
+# --- Batch 4: only after com.gathin.tvhome owns Home
+com.google.android.tvrecommendations
+com.google.android.leanbacklauncher.partnercustomizer
+
+# --- Batch 5: owner asked these Home tiles off
+# LeanKey is extra; default IME stays com.google.android.inputmethod.latin
+com.homwee.howtocast
+com.smartdevice.speedchannels
+com.liskovsoft.leankeyboard

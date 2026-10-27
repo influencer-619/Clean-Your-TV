@@ -1,0 +1,16 @@
+{
+  "dock_apps": [
+    "com.google.android.youtube.tv",
+    "org.videolan.vlc",
+    "com.yablio.sendfilestotv",
+    "com.cxinventor.file.explorer"
+  ],
+  "hidden_apps": [
+    "com.smartdevice.livetv"
+  ],
+  "live_tv_package": "com.smartdevice.livetv",
+  "reduced_motion": true,
+  "focus_overshoot": false,
+  "ambient_glow": false,
+  "advanced_effects": false
+}
