@@ -99,33 +99,43 @@ final class WallpaperPlayer {
     }
 
     /**
-     * The picture Home opens with is decoded right here, on the main thread, as the single wallpaper always was:
-     * Home's first frame already has it instead of drawing the plain colour and the picture popping in later.
-     * Only the later changes of a rotation decode in the background.
+     * Picks the opening picture and decodes it off the UI thread, like a rotation. A 1080p JPEG plus its
+     * GPU copy on the main thread held the first Home frame at power-on on 1 GB / 1.7 GB sets. The root's
+     * colour shows until the picture is ready.
      */
     private void showFirst() {
-        String previous = preferences.getString("image", "");
+        loadFirst(preferences.getString("image", ""));
+    }
+
+    private void loadFirst(String previous) {
         List<File> playable = playable();
         File first = WallpaperRotation.find(playable, previous);
         if (first == null) first = WallpaperRotation.pick(playable, previous, order, random);
-        while (first != null) {
-            Bitmap bitmap = decode(first);
-            if (bitmap != null) {
+        if (first == null) return;
+        File next = first;
+        loading = true;
+        decoder.execute(() -> {
+            Bitmap bitmap = decode(next);
+            root.post(() -> {
+                loading = false;
+                if (closed) {
+                    if (bitmap != null) bitmap.recycle();
+                    return;
+                }
+                if (bitmap == null) {
+                    files.remove(next);
+                    loadFirst(previous);
+                    return;
+                }
                 show(bitmap);
-                // The picture covers the whole screen: the root's plain colour under it is overdraw.
-                root.setBackground(null);
-                displayed = first.getName();
+                displayed = next.getName();
                 showCaption(false);
                 if (!displayed.equals(previous)) {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();
                 }
-                return;
-            }
-            files.remove(first);   // unreadable or over 4K: try another, or keep the plain colour
-            playable = playable();
-            first = WallpaperRotation.pick(playable, previous, order, random);
-        }
+            });
+        });
     }
 
     void start() {
