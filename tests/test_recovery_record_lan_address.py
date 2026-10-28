@@ -13,6 +13,7 @@ Run from the repository root: python3 -m unittest discover -s tests -v
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import unittest
@@ -44,6 +45,8 @@ class RecordPerLanAddressTest(unittest.TestCase):
     sent = harness.RecoveryRecordTest.sent
 
     def run_script(self, script, host, port=None):
+        if os.name != "posix" or not shutil.which("bash"):
+            raise unittest.SkipTest(f"{script} is a POSIX script; it needs bash")
         env = dict(os.environ, TV_HOST=host, HOME=str(self.home), FAKE_TV_STATE=str(self.state_path))
         env.pop("TV_PORT", None)
         if port:

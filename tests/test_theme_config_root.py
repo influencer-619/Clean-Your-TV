@@ -45,7 +45,11 @@ class ThemeConfigRootTest(unittest.TestCase):
         (self.tools / "tv.py").write_text(FAKE_TV)
         venv = self.tools / "venv" / "bin"
         venv.mkdir(parents=True)
-        (venv / "python").symlink_to(sys.executable)
+        try:
+            (venv / "python").symlink_to(sys.executable)
+        except OSError:
+            if os.name == "posix":
+                raise
         self.theme = self.base / "my-theme"
         self.theme.mkdir()
         self.log = self.base / "tv-calls.log"

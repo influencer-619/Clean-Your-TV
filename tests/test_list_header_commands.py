@@ -70,6 +70,8 @@ def hide_command(lines):
 
 class HideHeaderTest(unittest.TestCase):
     def run_command(self, folder, command):
+        if os.name != "posix" or not shutil.which("bash"):
+            raise unittest.SkipTest("the header's apply line is a POSIX pipeline; it needs bash")
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "repo"
             listing = repo / "examples" / folder / "debloat.txt"

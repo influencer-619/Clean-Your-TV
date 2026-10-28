@@ -374,8 +374,9 @@ def target_problem(path):
         # The argument is a folder: `--write lists/`, or `--write` with a name that happens to be a
         # directory. Saying it "already exists" answers a question the owner did not ask, and letting
         # it through is an IsADirectoryError after the whole audit.
+        example = path.rstrip("/\\") + "/privacy.txt"
         return (f"{path} is a folder, and --write takes a file name to create, "
-                f"e.g. {os.path.join(path, 'privacy.txt')}.")
+                f"e.g. {example}.")
     if os.path.exists(path):
         # A second audit of the same TV may legitimately differ, but silently replacing a list the
         # owner is about to apply is how a hand edit disappears.

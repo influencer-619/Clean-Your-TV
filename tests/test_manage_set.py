@@ -262,7 +262,7 @@ class SetThemeFolderTest(unittest.TestCase):
         self.config.write_text('{"greeting_name": "Old",}\n', encoding="utf-8")
         before = self.config.read_bytes()
         refusal = self.set_key()
-        self.assertIn(str(self.config), refusal)
+        self.assertIn(str(self.config.resolve()), refusal)
         self.assertIn("is not valid JSON", refusal)
         self.assertIn("Nothing was written or pushed", refusal)
         self.assertEqual(before, self.config.read_bytes(), "a refused theme must not be rewritten")
@@ -293,7 +293,7 @@ class SetThemeFolderTest(unittest.TestCase):
         afile = Path(self.tmp.name) / "not-a-theme"
         afile.write_text("", encoding="utf-8")
         refusal = self.set_key(folder=afile)
-        self.assertIn(f"{afile} is a file, not a folder", refusal)
+        self.assertIn(f"{afile.resolve()} is a file, not a folder", refusal)
         self.push.assert_not_called()
 
     def test_a_write_it_cannot_make_is_named(self):

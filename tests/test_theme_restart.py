@@ -295,6 +295,7 @@ class Recovery(unittest.TestCase):
             self.assertFalse(any('force-stop' in x for x in tv.calls))
 
 
+@unittest.skipUnless(os.name == "posix", "/bin/sh is the TV-side shell these tests exercise")
 class RemoteCycle(unittest.TestCase):
     def test_restore_runs_on_normal_exit_settings_failure_and_remote_termination(self):
         # Run the actual device-side command in a POSIX shell. The settings stub
@@ -325,6 +326,7 @@ sleep() { :; }
 
 
 class ExitStatus(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "/bin/sh is the TV-side shell this test exercises")
     def test_real_posix_shell_marker_checks_nonzero_exit(self):
         class Local:
             def shell(self, command, **kwargs):

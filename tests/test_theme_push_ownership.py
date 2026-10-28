@@ -113,7 +113,11 @@ class ThemePushTest(unittest.TestCase):
         (self.tools / "tv.py").write_text(FAKE_TV)
         venv = self.tools / "venv" / "bin"
         venv.mkdir(parents=True)
-        (venv / "python").symlink_to(sys.executable)
+        try:
+            (venv / "python").symlink_to(sys.executable)
+        except OSError:
+            if os.name == "posix":
+                raise
         self.bin = self.base / "bin"
         self.bin.mkdir()
         content = self.bin / "content"

@@ -312,8 +312,12 @@ def read_inputs(root, patch):
                       f"repository: nothing was read or written.")
     if patch is None:
         return None, None
+    path = Path(patch)
+    # Windows open() on a folder is Permission denied, not IsADirectoryError: name it before the read.
+    if path.is_dir():
+        return None, f"--adopt: cannot read '{patch}': Is a directory. Nothing was written."
     try:
-        return Path(patch).read_text(encoding="utf-8"), None
+        return path.read_text(encoding="utf-8"), None
     except OSError as e:
         # A path that is a directory is OSError too (IsADirectoryError), so this covers a patch folder.
         # The path is quoted so an empty --adopt ('' or a stray pair of quotes) is visible in the line.

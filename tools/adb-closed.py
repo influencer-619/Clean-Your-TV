@@ -46,6 +46,32 @@ def this_computer(host):
     return address.is_loopback or address.is_unspecified
 
 
+def connect_address(host):
+    """The address create_connection should dial once this_computer(host) is true.
+
+    Windows getaddrinfo does not accept the short IPv4 forms (127.1, 2130706433, 0x7f000001) that
+    inet_aton still maps to 127.0.0.1, so the check would fail with gaierror instead of a refusal
+    that names this computer.
+    """
+    name = host.lower()
+    if name.endswith("."):
+        name = name[:-1]
+    if name == "localhost" or name.endswith(".localhost"):
+        return "127.0.0.1"
+    try:
+        address = ipaddress.ip_address(name.split("%", 1)[0])
+    except ValueError:
+        try:
+            address = ipaddress.IPv4Address(socket.inet_aton(name))
+        except (OSError, ValueError):
+            return host
+    if getattr(address, "ipv4_mapped", None):
+        address = address.ipv4_mapped
+    if address.is_unspecified:
+        return "127.0.0.1" if address.version == 4 else "::1"
+    return str(address)
+
+
 def split_host_port(endpoint):
     """Split host:port or [ipv6]:port into (host, port_or_none)."""
     if endpoint.startswith("["):
@@ -105,7 +131,7 @@ def main():
              "from an ordinary terminal:  tools/adb-closed.py <tv ip>\n" if local else "")
 
     try:
-        with socket.create_connection((host, port), timeout=TIMEOUT_S):
+        with socket.create_connection((connect_address(host) if local else host, port), timeout=TIMEOUT_S):
             pass
     except ConnectionRefusedError:
         if local:
