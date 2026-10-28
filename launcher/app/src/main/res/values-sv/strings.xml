@@ -4,6 +4,8 @@
     <string name="inputs">Ingångar</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Inställningar</string>
+    <string name="themes">Teman</string>
+    <string name="theme_applied">Tema tillämpat</string>
     <string name="choose_input">Ingångar</string>
     <string name="connected">Ansluten</string>
     <string name="standby">Viloläge</string>

@@ -4,6 +4,8 @@
     <string name="inputs">輸入來源</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">設定</string>
+    <string name="themes">主題</string>
+    <string name="theme_applied">已套用主題</string>
     <string name="choose_input">輸入來源</string>
     <string name="connected">已連線</string>
     <string name="standby">待機</string>

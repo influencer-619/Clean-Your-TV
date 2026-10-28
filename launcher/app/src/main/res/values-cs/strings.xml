@@ -4,6 +4,8 @@
     <string name="inputs">Vstupy</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Nastavení</string>
+    <string name="themes">Motivy</string>
+    <string name="theme_applied">Motiv použit</string>
     <string name="choose_input">Vstupy</string>
     <string name="connected">Připojeno</string>
     <string name="standby">V pohotovosti</string>

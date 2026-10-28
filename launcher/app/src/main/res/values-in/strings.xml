@@ -4,6 +4,8 @@
     <string name="inputs">Input</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Setelan</string>
+    <string name="themes">Tema</string>
+    <string name="theme_applied">Tema diterapkan</string>
     <string name="choose_input">Input</string>
     <string name="connected">Terhubung</string>
     <string name="standby">Siaga</string>

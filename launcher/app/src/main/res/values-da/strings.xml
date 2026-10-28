@@ -4,6 +4,8 @@
     <string name="inputs">Indgange</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Indstillinger</string>
+    <string name="themes">Temaer</string>
+    <string name="theme_applied">Tema anvendt</string>
     <string name="choose_input">Indgange</string>
     <string name="connected">Tilsluttet</string>
     <string name="standby">Standby</string>

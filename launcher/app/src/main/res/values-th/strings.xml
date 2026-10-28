@@ -4,6 +4,8 @@
     <string name="inputs">แหล่งสัญญาณ</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">ตั้งค่า</string>
+    <string name="themes">ธีม</string>
+    <string name="theme_applied">ใช้ธีมแล้ว</string>
     <string name="choose_input">แหล่งสัญญาณ</string>
     <string name="connected">เชื่อมต่อแล้ว</string>
     <string name="standby">สแตนด์บาย</string>

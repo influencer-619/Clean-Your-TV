@@ -4,6 +4,8 @@
     <string name="inputs">Джерела</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Налаштування</string>
+    <string name="themes">Теми</string>
+    <string name="theme_applied">Тему застосовано</string>
     <string name="choose_input">Джерела</string>
     <string name="connected">Під’єднано</string>
     <string name="standby">Очікування</string>

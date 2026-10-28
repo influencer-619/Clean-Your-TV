@@ -4,6 +4,8 @@
     <string name="inputs">المدخلات</string>
     <string name="wifi">واي فاي</string>
     <string name="settings">الإعدادات</string>
+    <string name="themes">السمات</string>
+    <string name="theme_applied">تم تطبيق السمة</string>
     <string name="choose_input">المدخلات</string>
     <string name="connected">متصل</string>
     <string name="standby">في وضع الاستعداد</string>

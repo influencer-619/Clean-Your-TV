@@ -4,6 +4,8 @@
     <string name="inputs">Innganger</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Innstillinger</string>
+    <string name="themes">Temaer</string>
+    <string name="theme_applied">Tema brukt</string>
     <string name="choose_input">Innganger</string>
     <string name="connected">Tilkoblet</string>
     <string name="standby">Hvilemodus</string>

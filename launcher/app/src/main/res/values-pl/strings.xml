@@ -4,6 +4,8 @@
     <string name="inputs">Wejścia</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Ustawienia</string>
+    <string name="themes">Motywy</string>
+    <string name="theme_applied">Zastosowano motyw</string>
     <string name="choose_input">Wejścia</string>
     <string name="connected">Podłączone</string>
     <string name="standby">Czuwanie</string>

@@ -4,6 +4,8 @@
     <string name="inputs">Girişler</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Ayarlar</string>
+    <string name="themes">Temalar</string>
+    <string name="theme_applied">Tema uygulandı</string>
     <string name="choose_input">Girişler</string>
     <string name="connected">Bağlı</string>
     <string name="standby">Bekleme</string>

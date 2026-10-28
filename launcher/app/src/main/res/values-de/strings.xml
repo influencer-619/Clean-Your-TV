@@ -4,6 +4,8 @@
     <string name="inputs">Quellen</string>
     <string name="wifi">WLAN</string>
     <string name="settings">Einstellungen</string>
+    <string name="themes">Designs</string>
+    <string name="theme_applied">Design angewendet</string>
     <string name="choose_input">Quellen</string>
     <string name="connected">Verbunden</string>
     <string name="standby">Standby</string>

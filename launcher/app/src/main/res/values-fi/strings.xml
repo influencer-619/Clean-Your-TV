@@ -4,6 +4,8 @@
     <string name="inputs">Lähteet</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Asetukset</string>
+    <string name="themes">Teemat</string>
+    <string name="theme_applied">Teema otettu käyttöön</string>
     <string name="choose_input">Lähteet</string>
     <string name="connected">Yhdistetty</string>
     <string name="standby">Valmiustila</string>

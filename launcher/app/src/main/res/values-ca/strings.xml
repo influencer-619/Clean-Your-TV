@@ -4,6 +4,8 @@
     <string name="inputs">Entrades</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Configuració</string>
+    <string name="themes">Temes</string>
+    <string name="theme_applied">Tema aplicat</string>
     <string name="choose_input">Entrades</string>
     <string name="connected">Connectat</string>
     <string name="standby">En espera</string>

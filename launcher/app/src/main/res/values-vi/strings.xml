@@ -4,6 +4,8 @@
     <string name="inputs">Nguồn vào</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Cài đặt</string>
+    <string name="themes">Chủ đề</string>
+    <string name="theme_applied">Đã áp dụng chủ đề</string>
     <string name="choose_input">Nguồn vào</string>
     <string name="connected">Đã kết nối</string>
     <string name="standby">Chờ</string>

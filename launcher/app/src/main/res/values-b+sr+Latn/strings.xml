@@ -4,6 +4,8 @@
     <string name="inputs">Ulazi</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Podešavanja</string>
+    <string name="themes">Teme</string>
+    <string name="theme_applied">Tema primenjena</string>
     <string name="choose_input">Ulazi</string>
     <string name="connected">Povezano</string>
     <string name="standby">Mirovanje</string>
