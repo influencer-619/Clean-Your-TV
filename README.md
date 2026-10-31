@@ -613,7 +613,7 @@ The **TV** needs Android 8.0 (API 26) or newer: `minSdk` is a compile-time floor
 |---|---|
 | **Configure** | Dock order, hidden apps, Live TV app, 4 to 7 tiles per row, reduced motion. All in [`config.xml`](launcher/app/src/main/res/values/config.xml) |
 | **Settings on the TV** | Hold OK on Settings for launcher settings. Optional `launcher_settings_button` makes a normal click open them directly; TV settings remain on the settings page and their app tile. |
-| **Themes** | Background, wallpaper and layout from a `config.json` pushed over Wi-Fi, no rebuild. ten ship in [`themes/`](themes/), the built-in `default/` included |
+| **Themes** | Background, wallpaper and layout from a `config.json` pushed over Wi-Fi, no rebuild. eleven ship in [`themes/`](themes/), the built-in `default/` included |
 | **29 languages** | Follows the TV's language, with a fully mirrored right-to-left layout for Hebrew |
 | **App library** | Optional: browse every installed app and add or remove Home shortcuts. See [the app library guide](docs/app-library.md) |
 | **Tile menu** | Optional (`tile_menu`): hold OK on a tile for Move, Remove from Home and App info. Off, holding OK opens App info |
@@ -644,14 +644,13 @@ and a wallpaper.
 <details>
 <summary><b>Launcher settings and the default home</b></summary>
 
-- Click **Settings** for the TV's own settings. Hold OK on it for its menu: **Themes** when more than one
-  pack is on the TV; **Launcher settings** (with
-  `launcher_settings_button` a click opens those instead and the menu leaves the row out), **Native settings**
+- Click **Settings** for the TV's own settings. Hold OK on it for its menu: **Themes**, **Launcher settings**
+  and **Restart…** (Restart opens the system power menu while `HomeKeyService` runs; a launcher may not
+  restart the TV itself). **Native settings** still names the vendor settings app on China-market sets
   where the TV ships a settings app of its own beside Android's - Xiaomi China, TCL/FFALCON and Fire OS are
   in `settings_fallback_components` - because that app holds pages Android's has no row for, such as
-  Xiaomi's Account & Security with the ADB switch; **Module cards** with `module_cards`; **Edit dock** with
-  `dock_row`; **Reorder apps**; and **Restart…** while `HomeKeyService` runs, which opens the system power menu
-  (a launcher may not restart the TV itself). The launcher's own page has these rows, top to bottom:
+  Xiaomi's Account & Security with the ADB switch; a short press of Settings opens the TV's own pages.
+  The launcher's own page has these rows, top to bottom:
   - **Reorder apps**, only with `launcher_settings_button`: OK picks an app up, the arrows move it, Back
     places it, and Back again finishes.
   - **Apps per row** 4, 5, 6 or 7; **Rows below dock** 0 to 3, how many rows of tiles stay visible under the
@@ -664,6 +663,10 @@ and a wallpaper.
     transitions; they may use more memory) once animations are on.
   - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
     time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
+  - **Watch timer**, only with `watch_timer`: Off, **30 minutes**, **1 hour**, **2 hours**, **3 hours** or
+    **4 hours**, behind a 4-digit PIN and a 6-digit recovery PIN. After the time, apps are sent Home and the
+    screen locks; **Turn off TV** still opens the system power menu. Unlock with the PIN, or **Forgot PIN**
+    and the recovery PIN if the 4-digit one is lost.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings

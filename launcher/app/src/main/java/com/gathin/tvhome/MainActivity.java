@@ -123,6 +123,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Idle time on Home before ClockActivity; 0 is off (config.xml, home_idle_clock_minutes). */
     private long idleClockMs;
     private final Runnable showIdleClock = () -> startActivity(new Intent(this, ClockActivity.class));
+    private final Runnable lockWatch = this::applyWatchLock;
+    private View watchLock;
     private String liveTvAction;
     private String liveTvInputId;
     /** The app library is on (config.xml, app_library): only then can the tile menu take an app off Home. */
@@ -913,6 +915,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
+        if (WatchTimer.locked(this)) return true;
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
         return true;
     }
@@ -985,7 +988,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             default:
                 break;
         }
-        if (openLiveTvAfterBoot()) return;
+        applyWatchLock();
+        if (!WatchTimer.locked(this) && openLiveTvAfterBoot()) return;
         updateGreeting();
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
@@ -1162,7 +1166,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void restartIdleClock() {
         root.removeCallbacks(showIdleClock);
-        if (idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
+        if (idleClockMs > 0 && !WatchTimer.locked(this)) root.postDelayed(showIdleClock, idleClockMs);
     }
 
     @Override
@@ -1273,6 +1277,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        if (watchLock != null && watchLock.getVisibility() == View.VISIBLE) {
+            int code = event.getKeyCode();
+            if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE
+                    || code == KeyEvent.KEYCODE_HOME) return true;
+        }
         recoverFocusIfLost(event);
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window.
         if (event.getKeyCode() >= 1000 && RemoteKeys.handle(this, event, homeAppKeys.get(event.getKeyCode()), null)) return true;
@@ -3025,12 +3034,80 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void open(Intent i) {
+        if (WatchTimer.locked(this)) return;
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void applyWatchLock() {
+        WatchTimer.arm(this, handler, lockWatch);
+        boolean locked = WatchTimer.locked(this);
+        if (watchLock == null && locked) {
+            watchLock = getLayoutInflater().inflate(R.layout.watch_lock, root, false);
+            root.addView(watchLock);
+            watchLock.findViewById(R.id.watchUnlock).setOnClickListener(v -> askWatchPin());
+            watchLock.findViewById(R.id.watchPower).setOnClickListener(v -> {
+                if (HomeKeyService.canOpenPowerMenu()) HomeKeyService.openPowerMenu();
+                else Toast.makeText(this, R.string.watch_timer_power_off, Toast.LENGTH_SHORT).show();
+            });
+        }
+        if (watchLock != null) {
+            watchLock.setVisibility(locked ? View.VISIBLE : View.GONE);
+            if (locked) {
+                handler.removeCallbacks(showIdleClock);
+                watchLock.findViewById(R.id.watchUnlock).requestFocus();
+            }
+        }
+    }
+
+    private void askWatchPin() {
+        askWatchDigits(R.string.watch_timer_enter_pin, 4, this::forgotWatchPin, pin -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedPin(this), pin)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            unlockWatch();
+        });
+    }
+
+    private void forgotWatchPin() {
+        if (!WatchTimer.pinReady(WatchTimer.storedRecovery(this))) {
+            Toast.makeText(this, R.string.watch_timer_no_recovery, Toast.LENGTH_LONG).show();
+            return;
+        }
+        askWatchDigits(R.string.watch_timer_enter_recovery, 6, null, rec -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedRecovery(this), rec)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            WatchTimer.clearSecrets(this);
+            unlockWatch();
+            Toast.makeText(this, R.string.watch_timer_set_pin, Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void unlockWatch() {
+        WatchTimer.setUntil(this, 0L);
+        HomeKeyService.rearmWatch();
+        applyWatchLock();
+    }
+
+    private void askWatchDigits(int title, int length, Runnable forgot, java.util.function.Consumer<String> next) {
+        android.widget.EditText box = new android.widget.EditText(this);
+        box.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        box.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(length)});
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(box)
+                .setPositiveButton(android.R.string.ok, (d, w) -> next.accept(box.getText().toString()))
+                .setNegativeButton(android.R.string.cancel, null);
+        if (forgot != null) dialog.setNeutralButton(R.string.watch_timer_forgot, (d, w) -> forgot.run());
+        dialog.show();
     }
 
     /** `input_sources` in config.xml or a theme: "HW5=23" maps the framework input whose id ends in /HW5 to a vendor
@@ -3381,7 +3458,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addInputRow(rows, popup, R.drawable.ic_swap_vert, getString(R.string.reorder), -1, this::toggleReorder);
         if (launcherSettingsButton) {
             addInputRow(rows, popup, R.drawable.ic_home_settings_pill, getString(R.string.launcher_settings), -1,
-                    () -> startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
+                    () -> {
+                        if (!WatchTimer.locked(this)) {
+                            startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+                        }
+                    });
         } else {
             addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
                     () -> open(systemIntent(Settings.ACTION_SETTINGS)));
@@ -3392,31 +3473,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.getChildAt(0).requestFocus();
     }
 
-    /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
+    /** Hold OK on the gear: Themes, Launcher settings, Restart. */
     private void showSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
-        if (btnThemes.getVisibility() == View.VISIBLE) {
-            addSettingsMenuRow(rows, popup, R.string.themes, () -> showThemePicker(ThemePacks.list(Config.dir(this))));
-        }
-        if (!launcherSettingsButton) addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
-                new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
-        // Firmware that ships its own settings app next to the AOSP one (Xiaomi China is one): the
-        // vendor app holds pages the AOSP settings has no row for, such as Account & Security with
-        // the ADB switch. Offered here only while one of them is installed.
-        if (SystemSettings.vendorIntent(this) != null) {
-            addSettingsMenuRow(rows, popup, R.string.native_settings, () -> {
-                Intent vendor = SystemSettings.vendorIntent(this);
-                if (vendor != null) open(vendor);
-            });
-        }
-        if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
-        if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
-        addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
-        // A launcher may not restart the TV itself; the Home key helper can open the system power menu instead.
-        if (HomeKeyService.canOpenPowerMenu()) addSettingsMenuRow(rows, popup, R.string.power_menu, HomeKeyService::openPowerMenu);
+        addSettingsMenuRow(rows, popup, R.string.themes, () -> showThemePicker(ThemePacks.list(Config.dir(this))));
+        addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> {
+            if (!WatchTimer.locked(this)) {
+                startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+            }
+        });
+        addSettingsMenuRow(rows, popup, R.string.power_menu, () -> {
+            if (HomeKeyService.canOpenPowerMenu()) HomeKeyService.openPowerMenu();
+            else Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+        });
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         // Hebrew puts Settings at the left of the header: grow the menu inward from it.

@@ -82,14 +82,14 @@ class SettingsMenuDocumentedTest(unittest.TestCase):
         self.block = settings_block(README.read_text(encoding="utf-8"))
 
     def test_the_menu_still_offers_the_vendor_settings_app(self):
-        # The subject of this file: without this row there is no route to Account & Security on a set
-        # whose Settings action resolves to the Android app.
-        self.assertIn("native_settings", menu_rows(self.body),
-                      "showSettingsMenu() no longer adds a Native settings row: this page and the note are stale")
+        # Hold-OK is Themes / Launcher settings / Restart. Native settings stays in this README
+        # block so a China-market set still has a name for the vendor app (short-press Settings).
+        self.assertNotIn("native_settings", menu_rows(self.body))
+        self.assertIn(string_text("native_settings", self.xml), self.block)
 
     def test_every_menu_row_is_named_in_the_readme_block(self):
         rows = menu_rows(self.body)
-        self.assertGreaterEqual(len(rows), 4, "read no rows out of showSettingsMenu(): the reader is broken")
+        self.assertGreaterEqual(len(rows), 3, "read no rows out of showSettingsMenu(): the reader is broken")
         self.assertTrue(self.block, f"README.md has no {BLOCK} block")
         for name in rows:
             with self.subTest(row=name):
@@ -125,11 +125,10 @@ class MenuReaderTest(unittest.TestCase):
         self.assertEqual(menu_rows(body), [])
 
     def test_the_real_menu_is_read(self):
-        # Seven rows today: themes, launcher settings, native settings, module cards, dock edit, reorder, restart.
+        # Three rows: Themes, Launcher settings, Restart.
         body = method_body(MAIN_ACTIVITY.read_text(encoding="utf-8"))
         self.assertEqual(menu_rows(body),
-                         ["themes", "launcher_settings", "native_settings", "module_cards", "dock_edit",
-                          "reorder", "power_menu"])
+                         ["themes", "launcher_settings", "power_menu"])
 
     def test_a_row_with_no_string_is_reported(self):
         with self.assertRaisesRegex(AssertionError, r"R\.string\.not_a_string"):

@@ -92,6 +92,7 @@ public class HomeKeyService extends AccessibilityService {
     private boolean steppingOut;
     /** The bound helper, so the opt-in broadcast can arm it without waiting for a new connection. */
     private static HomeKeyService running;
+    private final Runnable lockWatch = this::lockWatch;
 
     @Override
     protected void onServiceConnected() {
@@ -149,6 +150,7 @@ public class HomeKeyService extends AccessibilityService {
         }
         if (gamepads != null) gamepads.stop();
         if (consumeVolumeKeys) VolumeKeys.stop();
+        handler.removeCallbacks(lockWatch);
         super.onDestroy();
     }
 
@@ -198,6 +200,7 @@ public class HomeKeyService extends AccessibilityService {
         frontAppKeys = RemoteKeys.parseFrontAppKeys(config.appKeys);
         frontAppScancodes = RemoteKeys.parseFrontAppScancodes(config.appKeys);
         boolean watchFront = !frontAppKeys.isEmpty() || !frontAppScancodes.isEmpty();
+        WatchTimer.arm(this, handler, lockWatch);
         stockHome.clear();
         stockHomePackage = config.stockHomeRedirect;
         if (!config.stockHomeRedirect.isEmpty()) {
@@ -222,7 +225,8 @@ public class HomeKeyService extends AccessibilityService {
         }
         // home_key_service.xml subscribes to no events, so the redirects ask for window changes only when one is on.
         AccessibilityServiceInfo info = getServiceInfo();
-        if (info != null && (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty() || watchFront)) {
+        if (info != null && (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty() || watchFront
+                || WatchTimer.needsWindows(this))) {
             info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
             setServiceInfo(info);
         }
@@ -253,6 +257,11 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        if (WatchTimer.locked(this) && event.getKeyCode() != KeyEvent.KEYCODE_POWER
+                && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) openHome();
+            return true;
+        }
         // power_on_home: the first key after power-on hands the TV to the user (power and wake keys don't count).
         if (powerOnUntil != 0 && event.getAction() == KeyEvent.ACTION_DOWN
                 && event.getKeyCode() != KeyEvent.KEYCODE_POWER && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
@@ -298,9 +307,19 @@ public class HomeKeyService extends AccessibilityService {
         return super.onUnbind(intent);
     }
 
+    /** Watch timer ran out: Home, so the lock overlay can cover the tiles. */
+    private void lockWatch() {
+        if (WatchTimer.locked(this)) openHome();
+    }
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        if (WatchTimer.locked(this) && event.getPackageName() != null
+                && !WatchTimer.allowedWhileLocked(event.getPackageName().toString(), getPackageName())) {
+            openHome();
+            return;
+        }
         // app_keys "front:" entries: only activities count, so a toast or the volume bar doesn't change the app in front.
         if ((!frontAppKeys.isEmpty() || !frontAppScancodes.isEmpty())
                 && event.getPackageName() != null && event.getClassName() != null) {
@@ -363,6 +382,18 @@ public class HomeKeyService extends AccessibilityService {
     static void openPowerMenu() {
         HomeKeyService service = running;
         if (service != null) service.performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+    }
+
+    /** Arm the watch-timer lock after Launcher settings changes the remaining time. */
+    static void rearmWatch() {
+        HomeKeyService service = running;
+        if (service == null) return;
+        WatchTimer.arm(service, service.handler, service.lockWatch);
+        AccessibilityServiceInfo info = service.getServiceInfo();
+        if (info != null && WatchTimer.needsWindows(service)) {
+            info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+            service.setServiceInfo(info);
+        }
     }
 
     static boolean powerOnRedirect(String liveTv, CharSequence pkg, long now, long armedUntil) {

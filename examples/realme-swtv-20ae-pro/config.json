@@ -12,5 +12,6 @@
   "reduced_motion": true,
   "focus_overshoot": false,
   "ambient_glow": false,
-  "advanced_effects": false
+  "advanced_effects": false,
+  "watch_timer": true
 }

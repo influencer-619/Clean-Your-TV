@@ -1,0 +1,24 @@
+{
+  "dock_apps": [
+    "com.google.android.youtube.tv",
+    "org.videolan.vlc",
+    "com.yablio.sendfilestotv",
+    "com.cxinventor.file.explorer"
+  ],
+  "hidden_apps": [
+    "com.smartdevice.livetv"
+  ],
+  "live_tv_package": "com.smartdevice.livetv",
+  "background_color": "#0A0610",
+  "accent_color": "#E11D2E",
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 2,
+  "wallpaper_order": "shuffle",
+  "wallpaper_captions": true,
+  "wallpaper_dim": 22,
+  "reduced_motion": true,
+  "focus_overshoot": false,
+  "ambient_glow": false,
+  "advanced_effects": false,
+  "dock_opacity": 70
+}

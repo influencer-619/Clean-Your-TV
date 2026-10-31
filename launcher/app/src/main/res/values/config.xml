@@ -46,6 +46,10 @@
          Off by default; a theme can set "open_on_start_choice": true. -->
     <bool name="open_on_start_choice">false</bool>
 
+    <!-- A PIN-protected Watch timer row in Launcher settings: pick 30 minutes to 4 hours, after which Home
+         locks and apps are sent back. The TV can still be switched off. Off by default; this set turns it on. -->
+    <bool name="watch_timer">true</bool>
+
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
          resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
          to that package instead, and the app starts normally. Leave empty to omit. -->

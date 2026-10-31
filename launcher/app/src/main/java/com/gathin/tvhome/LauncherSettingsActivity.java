@@ -37,6 +37,8 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView advancedChoice;
     private TextView followThemeChoice;
     private TextView openOnStartChoice;
+    private TextView watchTimerChoice;
+    private boolean watchTimerOn;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -46,6 +48,10 @@ public final class LauncherSettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        if (WatchTimer.locked(this)) {
+            finish();
+            return;
+        }
         setContentView(R.layout.activity_launcher_settings);
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
@@ -134,6 +140,12 @@ public final class LauncherSettingsActivity extends Activity {
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
             openOnStartChoice.setOnClickListener(v -> showOpenOnStartPicker());
+        }
+        watchTimerChoice = findViewById(R.id.watchTimerChoice);
+        watchTimerOn = config.watchTimer;
+        if (watchTimerOn) {
+            watchTimerChoice.setVisibility(View.VISIBLE);
+            watchTimerChoice.setOnClickListener(v -> showWatchTimer());
         }
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
@@ -239,6 +251,109 @@ public final class LauncherSettingsActivity extends Activity {
                 .show();
     }
 
+    private void showWatchTimer() {
+        if (!WatchTimer.pinReady(WatchTimer.storedPin(this))) {
+            askNewPins(() -> pickWatchMinutes());
+            return;
+        }
+        askPin(R.string.watch_timer_enter_pin, 4, this::forgotWatchPin, pin -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedPin(this), pin)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!WatchTimer.pinReady(WatchTimer.storedRecovery(this))) {
+                askRecovery(() -> pickWatchMinutes());
+                return;
+            }
+            pickWatchMinutes();
+        });
+    }
+
+    private void askNewPins(Runnable next) {
+        askPin(R.string.watch_timer_set_pin, 4, null, pin -> {
+            if (!WatchTimer.fourDigits(pin)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            WatchTimer.setPin(this, pin);
+            askRecovery(next);
+        });
+    }
+
+    private void askRecovery(Runnable next) {
+        askPin(R.string.watch_timer_set_recovery, 6, null, rec -> {
+            if (!WatchTimer.sixDigits(rec)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            WatchTimer.setRecovery(this, rec);
+            Toast.makeText(this, R.string.watch_timer_recovery_hint, Toast.LENGTH_LONG).show();
+            next.run();
+        });
+    }
+
+    private void forgotWatchPin() {
+        if (!WatchTimer.pinReady(WatchTimer.storedRecovery(this))) {
+            Toast.makeText(this, R.string.watch_timer_no_recovery, Toast.LENGTH_LONG).show();
+            return;
+        }
+        askPin(R.string.watch_timer_enter_recovery, 6, null, rec -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedRecovery(this), rec)) {
+                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            WatchTimer.clearSecrets(this);
+            HomeKeyService.rearmWatch();
+            askNewPins(this::pickWatchMinutes);
+        });
+    }
+
+    private void pickWatchMinutes() {
+        String[] labels = {
+                getString(R.string.off),
+                getString(R.string.watch_timer_30m),
+                getString(R.string.watch_timer_1h),
+                getString(R.string.watch_timer_2h),
+                getString(R.string.watch_timer_3h),
+                getString(R.string.watch_timer_4h),
+        };
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.watch_timer_state, getString(R.string.off)))
+                .setItems(labels, (dialog, which) -> {
+                    WatchTimer.setUntil(this, WatchTimer.start(System.currentTimeMillis(),
+                            WatchTimer.MINUTES[which]));
+                    HomeKeyService.rearmWatch();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void askPin(int title, int length, Runnable forgot, java.util.function.Consumer<String> next) {
+        android.widget.EditText box = new android.widget.EditText(this);
+        box.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        box.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(length)});
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(box)
+                .setPositiveButton(android.R.string.ok, (d, w) -> next.accept(box.getText().toString()))
+                .setNegativeButton(android.R.string.cancel, null);
+        if (forgot != null) dialog.setNeutralButton(R.string.watch_timer_forgot, (d, w) -> forgot.run());
+        dialog.show();
+    }
+
+    private String watchTimerLabel() {
+        long now = System.currentTimeMillis();
+        long until = WatchTimer.until(this);
+        if (WatchTimer.locked(now, until)) return getString(R.string.watch_timer_times_up);
+        if (!WatchTimer.running(now, until)) return getString(R.string.off);
+        long left = WatchTimer.leftMinutes(now, until);
+        if (left >= 180) return getString(left >= 240 ? R.string.watch_timer_4h : R.string.watch_timer_3h);
+        if (left >= 60) return getString(left >= 120 ? R.string.watch_timer_2h : R.string.watch_timer_1h);
+        return getString(R.string.watch_timer_30m);
+    }
+
     /** The picked app's name, its package when it is gone, or Off. */
     private String openOnStartLabel() {
         String pkg = choices.getString(OpenOnStart.KEY, "");
@@ -298,6 +413,7 @@ public final class LauncherSettingsActivity extends Activity {
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
+        if (watchTimerOn) watchTimerChoice.setText(getString(R.string.watch_timer_state, watchTimerLabel()));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 

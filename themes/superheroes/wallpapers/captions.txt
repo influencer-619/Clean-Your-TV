@@ -1,0 +1,7 @@
+# wallpaper_captions: "<file><TAB><name>"
+01-web.jpg	Spider-Man
+02-night.jpg	Batman
+03-shield.jpg	Captain America
+04-armor.jpg	Iron Man
+05-thunder.jpg	Thor
+06-team.jpg	Superheroes

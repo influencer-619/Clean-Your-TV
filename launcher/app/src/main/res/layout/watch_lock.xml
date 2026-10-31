@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/watchLock"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0101419"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="48dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/watch_timer_times_up"
+        android:textColor="#FFFFFFFF"
+        android:textSize="42sp" />
+
+    <TextView
+        android:id="@+id/watchUnlock"
+        style="@style/SettingsRow"
+        android:layout_width="wrap_content"
+        android:layout_marginTop="36dp"
+        android:minWidth="280dp"
+        android:text="@string/watch_timer_unlock" />
+
+    <TextView
+        android:id="@+id/watchPower"
+        style="@style/SettingsRow"
+        android:layout_width="wrap_content"
+        android:layout_marginTop="12dp"
+        android:minWidth="280dp"
+        android:text="@string/watch_timer_power_off" />
+</LinearLayout>
