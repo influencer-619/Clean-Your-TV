@@ -5,3 +5,10 @@
 04-armor.jpg	Iron Man
 05-thunder.jpg	Thor
 06-team.jpg	Superheroes
+07-hulk.jpg	Hulk
+08-cape.jpg	Superman
+09-lasso.jpg	Wonder Woman
+10-claw.jpg	Black Panther
+11-speed.jpg	The Flash
+12-claws.jpg	Wolverine
+13-magic.jpg	Doctor Strange
