@@ -20,5 +20,6 @@
   "focus_overshoot": false,
   "ambient_glow": false,
   "advanced_effects": false,
-  "dock_opacity": 70
+  "dock_opacity": 70,
+  "stock_home_redirect": "com.google.android.tvlauncher"
 }

@@ -13,5 +13,6 @@
   "focus_overshoot": false,
   "ambient_glow": false,
   "advanced_effects": false,
-  "watch_timer": true
+  "watch_timer": true,
+  "stock_home_redirect": "com.google.android.tvlauncher"
 }

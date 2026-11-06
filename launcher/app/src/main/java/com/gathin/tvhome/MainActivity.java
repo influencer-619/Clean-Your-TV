@@ -2286,10 +2286,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (adapter.isLibraryAt(count)) focusLibrary();
                 return true;
             }
-            return !forward && position == 0;
+            if (!forward && position == 0) return true;
+            focusTile(position + (forward ? 1 : -1));
+            grid.playSoundEffect(keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    ? SoundEffectConstants.NAVIGATION_LEFT : SoundEffectConstants.NAVIGATION_RIGHT);
+            return true;
         }
-        // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
-        // escapes up into the top bar. Mid-row moves fall through to the default focus search.
+        // Horizontal: one tile at a time, and swallow the key at a row's ends so focus never wraps
+        // to the next row or escapes up into the top bar. The focus finder is not used: a zoomed
+        // tile's bounds hide the neighbour, so Right does nothing or jumps over an app.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
             boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
             if (forward && position == adapter.focusablePosition(count - 1) && adapter.isLibraryAt(count)) {
@@ -2298,8 +2303,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             // In the dock, the last app is the row's end: the empty slots after it take no focus.
             int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
-            return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
+            int next = GridNavigation.horizontalStep(position, rowCount, COLUMNS,
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
+            if (next < 0) return true;
+            focusTile(next);
+            grid.playSoundEffect(keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    ? SoundEffectConstants.NAVIGATION_LEFT : SoundEffectConstants.NAVIGATION_RIGHT);
+            return true;
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             if (position < COLUMNS) {

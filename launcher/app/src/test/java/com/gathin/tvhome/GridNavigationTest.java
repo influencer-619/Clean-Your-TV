@@ -32,6 +32,25 @@ public class GridNavigationTest {
         assertFalse(GridNavigation.atHorizontalEdge(1, 11, 4, false, false));
     }
 
+    @Test public void rightStepsOneTileAndStopsAtTheRowEnd() {
+        assertEquals(2, GridNavigation.horizontalStep(1, 11, 4, false, false));
+        assertEquals(0, GridNavigation.horizontalStep(1, 11, 4, false, true));
+        assertEquals(-1, GridNavigation.horizontalStep(0, 11, 4, false, true));
+        assertEquals(-1, GridNavigation.horizontalStep(3, 11, 4, false, false));
+        assertEquals(9, GridNavigation.horizontalStep(10, 11, 4, false, true));
+        assertEquals(-1, GridNavigation.horizontalStep(10, 11, 4, false, false));
+        // A dock shorter than the column count: Right from the last app stays put, Right from the first moves.
+        assertEquals(1, GridNavigation.horizontalStep(0, 4, 5, false, false));
+        assertEquals(-1, GridNavigation.horizontalStep(3, 4, 5, false, false));
+    }
+
+    @Test public void hebrewRightMovesTowardTheStart() {
+        assertEquals(-1, GridNavigation.horizontalStep(0, 11, 4, true, false));
+        assertEquals(1, GridNavigation.horizontalStep(0, 11, 4, true, true));
+        assertEquals(2, GridNavigation.horizontalStep(3, 11, 4, true, false));
+        assertEquals(-1, GridNavigation.horizontalStep(3, 11, 4, true, true));
+    }
+
     @Test public void singleColumnHasBothHorizontalEdges() {
         assertTrue(GridNavigation.atHorizontalEdge(1, 3, 1, true, true));
         assertTrue(GridNavigation.atHorizontalEdge(1, 3, 1, true, false));

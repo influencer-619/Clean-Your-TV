@@ -99,6 +99,22 @@
             </intent-filter>
         </activity>
 
+        <!-- A normal app tile on the stock launcher (no HOME category, so Google TV does not hide it).
+             Opens this launcher when the firmware has put its own home screen back in front. -->
+        <activity
+            android:name=".SwitchHomeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:label="@string/new_design_launcher"
+            android:banner="@drawable/banner"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".LauncherSettingsActivity"
             android:exported="false"
