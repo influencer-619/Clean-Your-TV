@@ -664,9 +664,11 @@ and a wallpaper.
   - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
     time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
   - **Watch timer**, only with `watch_timer`: Off, **30 minutes**, **1 hour**, **2 hours**, **3 hours** or
-    **4 hours**, behind a 4-digit PIN and a 6-digit recovery PIN. After the time, apps are sent Home and the
-    screen locks; **Turn off TV** still opens the system power menu. Unlock with the PIN, or **Forgot PIN**
-    and the recovery PIN if the 4-digit one is lost.
+    **4 hours** per day, behind a 4-digit PIN and a 6-digit recovery PIN. Counts only while the TV is on
+    (standby pauses it; power-on resumes the leftover time). After the time, apps are sent Home and the
+    screen locks; at midnight a fresh countdown of the same length starts. **Turn off TV** still opens
+    the system power menu. Unlock frees the rest of today only (PIN, or **Forgot PIN** and the recovery
+    PIN if the 4-digit one is lost).
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings

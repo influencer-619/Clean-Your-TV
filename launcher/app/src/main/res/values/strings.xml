@@ -72,7 +72,10 @@
     <string name="watch_timer_enter_pin">Enter PIN</string>
     <string name="watch_timer_enter_recovery">Enter recovery PIN</string>
     <string name="watch_timer_forgot">Forgot PIN</string>
+    <string name="watch_timer_clear">Clear</string>
     <string name="watch_timer_recovery_hint">Write the 6-digit recovery PIN down. It unlocks the timer if you forget the 4-digit PIN.</string>
+    <string name="watch_timer_daily_hint">This length applies every day and counts only while the TV is on. Turning the TV off pauses it; turning it on resumes the leftover time. At midnight a fresh countdown of the same length starts.</string>
+    <string name="watch_timer_unlocked_today">Unlocked today</string>
     <string name="watch_timer_no_recovery">No recovery PIN yet. Unlock with your PIN first, then set one.</string>
     <string name="watch_timer_wrong">Wrong PIN</string>
     <string name="watch_timer_unlock">Unlock</string>

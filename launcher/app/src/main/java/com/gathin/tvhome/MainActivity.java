@@ -3075,12 +3075,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void askWatchPin() {
-        askWatchDigits(R.string.watch_timer_enter_pin, 4, this::forgotWatchPin, pin -> {
-            if (!WatchTimer.pinOk(WatchTimer.storedPin(this), pin)) {
-                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
-                return;
-            }
+        // Incomplete setup (PIN without recovery) cannot unlock; clear it so settings can start again.
+        if (WatchTimer.pinReady(WatchTimer.storedPin(this))
+                && !WatchTimer.pinReady(WatchTimer.storedRecovery(this))) {
+            WatchTimer.clearSecrets(this);
             unlockWatch();
+            Toast.makeText(this, R.string.watch_timer_set_pin, Toast.LENGTH_LONG).show();
+            return;
+        }
+        PinPad.show(this, R.string.watch_timer_enter_pin, 4, this::forgotWatchPin, pin -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedPin(this), pin)) return false;
+            unlockWatch();
+            return true;
         });
     }
 
@@ -3089,35 +3095,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Toast.makeText(this, R.string.watch_timer_no_recovery, Toast.LENGTH_LONG).show();
             return;
         }
-        askWatchDigits(R.string.watch_timer_enter_recovery, 6, null, rec -> {
-            if (!WatchTimer.pinOk(WatchTimer.storedRecovery(this), rec)) {
-                Toast.makeText(this, R.string.watch_timer_wrong, Toast.LENGTH_SHORT).show();
-                return;
-            }
+        PinPad.show(this, R.string.watch_timer_enter_recovery, 6, null, rec -> {
+            if (!WatchTimer.pinOk(WatchTimer.storedRecovery(this), rec)) return false;
             WatchTimer.clearSecrets(this);
             unlockWatch();
             Toast.makeText(this, R.string.watch_timer_set_pin, Toast.LENGTH_LONG).show();
+            return true;
         });
     }
 
     private void unlockWatch() {
-        WatchTimer.setUntil(this, 0L);
+        WatchTimer.unlockToday(this);
         HomeKeyService.rearmWatch();
         applyWatchLock();
-    }
-
-    private void askWatchDigits(int title, int length, Runnable forgot, java.util.function.Consumer<String> next) {
-        android.widget.EditText box = new android.widget.EditText(this);
-        box.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-        box.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(length)});
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setView(box)
-                .setPositiveButton(android.R.string.ok, (d, w) -> next.accept(box.getText().toString()))
-                .setNegativeButton(android.R.string.cancel, null);
-        if (forgot != null) dialog.setNeutralButton(R.string.watch_timer_forgot, (d, w) -> forgot.run());
-        dialog.show();
     }
 
     /** `input_sources` in config.xml or a theme: "HW5=23" maps the framework input whose id ends in /HW5 to a vendor

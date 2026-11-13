@@ -88,6 +88,8 @@ public class HomeKeyService extends AccessibilityService {
     private GamepadPassthrough gamepads;
     /** Screen-off receiver while guard_off_in_standby is set; null otherwise. */
     private BroadcastReceiver standbyExit;
+    /** Pauses / resumes the Watch timer with the screen; null when watch_timer is off. */
+    private BroadcastReceiver watchScreenReceiver;
     /** disableSelf is how this service leaves for standby, not the user turning it off. */
     private boolean steppingOut;
     /** The bound helper, so the opt-in broadcast can arm it without waiting for a new connection. */
@@ -141,6 +143,13 @@ public class HomeKeyService extends AccessibilityService {
         if (running == this) running = null;
         stopWaitingForUnlock();
         if (screenOnReceiver != null) unregisterReceiver(screenOnReceiver);
+        if (watchScreenReceiver != null) {
+            try {
+                unregisterReceiver(watchScreenReceiver);
+            } catch (RuntimeException ignored) {
+            }
+            watchScreenReceiver = null;
+        }
         if (standbyExit != null) {
             try {
                 unregisterReceiver(standbyExit);
@@ -200,6 +209,7 @@ public class HomeKeyService extends AccessibilityService {
         frontAppKeys = RemoteKeys.parseFrontAppKeys(config.appKeys);
         frontAppScancodes = RemoteKeys.parseFrontAppScancodes(config.appKeys);
         boolean watchFront = !frontAppKeys.isEmpty() || !frontAppScancodes.isEmpty();
+        armWatchScreen();
         WatchTimer.arm(this, handler, lockWatch);
         stockHome.clear();
         stockHomePackage = config.stockHomeRedirect;
@@ -257,8 +267,10 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        if (WatchTimer.locked(this) && event.getKeyCode() != KeyEvent.KEYCODE_POWER
-                && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
+        // While locked, D-pad and OK must reach Unlock / Turn off (and the PIN pad). Other keys still
+        // bounce the user back to Home so apps cannot be opened past the timer.
+        if (WatchTimer.locked(this)) {
+            if (WatchTimer.lockAllowsKey(event.getKeyCode())) return false;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) openHome();
             return true;
         }
@@ -307,9 +319,45 @@ public class HomeKeyService extends AccessibilityService {
         return super.onUnbind(intent);
     }
 
-    /** Watch timer ran out: Home, so the lock overlay can cover the tiles. */
+    /** Watch timer ran out, or midnight rolled a new day: Home when locked, then arm again. */
     private void lockWatch() {
         if (WatchTimer.locked(this)) openHome();
+        WatchTimer.arm(this, handler, lockWatch);
+    }
+
+    /** Count watch time only while the screen is on; pause the leftover budget in standby. */
+    private void armWatchScreen() {
+        if (!WatchTimer.on(this)) {
+            if (watchScreenReceiver != null) {
+                try {
+                    unregisterReceiver(watchScreenReceiver);
+                } catch (RuntimeException ignored) {
+                }
+                watchScreenReceiver = null;
+            }
+            return;
+        }
+        if (WatchTimer.screenOn(this)) WatchTimer.resume(this);
+        else WatchTimer.pause(this);
+        if (watchScreenReceiver != null) return;
+        watchScreenReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                    WatchTimer.pause(HomeKeyService.this);
+                    WatchTimer.arm(HomeKeyService.this, handler, lockWatch);
+                } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                    WatchTimer.resume(HomeKeyService.this);
+                    rearmWatch();
+                    if (WatchTimer.locked(HomeKeyService.this)) openHome();
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(watchScreenReceiver, filter);
     }
 
     @Override

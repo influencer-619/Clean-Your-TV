@@ -63,7 +63,10 @@
     <string name="watch_timer_enter_pin">הזינו את הקוד</string>
     <string name="watch_timer_enter_recovery">הזינו את קוד השחזור</string>
     <string name="watch_timer_forgot">שכחתי את הקוד</string>
+    <string name="watch_timer_clear">נקה</string>
     <string name="watch_timer_recovery_hint">רשמו את קוד השחזור בן 6 הספרות. הוא מבטל את הנעילה אם הקוד בן 4 הספרות נשכח.</string>
+    <string name="watch_timer_daily_hint">המשך הזה חל בכל יום ונספר רק כשהטלוויזיה דולקת. כיבוי עוצר את הספירה; הדלקה ממשיכה את הזמן שנשאר. בחצות מתחילה ספירה חדשה באותו אורך.</string>
+    <string name="watch_timer_unlocked_today">פתוח להיום</string>
     <string name="watch_timer_no_recovery">עדיין אין קוד שחזור. בטלו את הנעילה עם הקוד, ואז הגדירו אחד.</string>
     <string name="watch_timer_wrong">קוד שגוי</string>
     <string name="watch_timer_unlock">ביטול הנעילה</string>

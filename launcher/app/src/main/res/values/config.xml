@@ -46,8 +46,10 @@
          Off by default; a theme can set "open_on_start_choice": true. -->
     <bool name="open_on_start_choice">false</bool>
 
-    <!-- A PIN-protected Watch timer row in Launcher settings: pick 30 minutes to 4 hours, after which Home
-         locks and apps are sent back. The TV can still be switched off. Off by default; this set turns it on. -->
+    <!-- A PIN-protected Watch timer row in Launcher settings: pick 30 minutes to 4 hours as the daily
+         length. Counts only while the screen is on (pauses in standby, resumes leftover time). Home
+         locks when it ends; at midnight a fresh countdown of the same length starts. Unlock frees the
+         rest of today only. Off by default in themes; this build turns it on for the owner's TV. -->
     <bool name="watch_timer">true</bool>
 
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
