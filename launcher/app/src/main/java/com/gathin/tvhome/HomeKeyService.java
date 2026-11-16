@@ -188,6 +188,8 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void leaveForStandby() {
+        // Save leftover watch time before this helper unbinds; otherwise prefs keep a full day.
+        WatchTimer.pause(this);
         steppingOut = true;
         GuardKeep.stepOut(this);
     }
@@ -315,6 +317,7 @@ public class HomeKeyService extends AccessibilityService {
     /** Unbound by Android: the user turned the helper off, so Home doesn't put it back (ServiceRepair). */
     @Override
     public boolean onUnbind(Intent intent) {
+        WatchTimer.pause(this);
         if (repairRecord && !steppingOut) ServiceRepair.disconnected(this, getClass());
         return super.onUnbind(intent);
     }

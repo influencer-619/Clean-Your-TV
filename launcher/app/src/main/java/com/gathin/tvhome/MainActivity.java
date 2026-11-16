@@ -382,6 +382,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (festive) updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
+            // Persist leftover watch time and show Time's up even if the expiry Handler was delayed.
+            if (WatchTimer.on(MainActivity.this) && WatchTimer.dailyMinutes(MainActivity.this) > 0) {
+                WatchTimer.persistLeft(MainActivity.this);
+                applyWatchLock();
+            }
             handler.postDelayed(this, MINUTE_MS);
         }
     };

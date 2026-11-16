@@ -124,4 +124,20 @@ public class WatchTimerTest {
         assertEquals(remaining, WatchTimer.leftMs(remaining, 50L, end, at));
         assertEquals(0L, WatchTimer.leftMs(0L, 50L, 0L, -1L));
     }
+
+    @Test public void staleFullRemainingMustNotHideExpiryWhileElapsedHasEnded() {
+        // Prefs still hold the original 30 minutes, but elapsed already reached the end.
+        long staleRemaining = 30 * 60_000L;
+        long at = 1_000L;
+        long end = at + staleRemaining;
+        assertEquals(0L, WatchTimer.leftMs(staleRemaining, end, end, at));
+        assertEquals(0L, WatchTimer.leftMs(staleRemaining, end + 5_000L, end, at));
+    }
+
+    @Test public void afterRebootPersistedLeftoverIsWhatRemains() {
+        // persistLeft must have written the true leftover before power-off; reboot uses that value.
+        long leftover = 12 * 60_000L;
+        assertEquals(leftover, WatchTimer.leftMs(leftover, 200L, 9_000_000L, 8_000_000L));
+        assertEquals(0L, WatchTimer.leftMs(0L, 200L, 9_000_000L, 8_000_000L));
+    }
 }

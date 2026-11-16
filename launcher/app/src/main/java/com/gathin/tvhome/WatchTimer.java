@@ -226,10 +226,29 @@ final class WatchTimer {
                 p.getLong(ELAPSED_END, 0L), p.getLong(ELAPSED_AT_SET, -1L));
     }
 
+    /**
+     * Copy the true leftover into {@link #REMAINING}. While counting, prefs kept the original
+     * allotment; without this a reboot or killed service restored a full day and Time's up never stuck.
+     */
+    static void persistLeft(Context ctx) {
+        SharedPreferences p = prefs(ctx);
+        if (p.getInt(DAILY_MINUTES, 0) <= 0 || unlockedToday(ctx)) return;
+        long left = leftMs(ctx);
+        boolean counting = left > 0 && screenOn(ctx);
+        writeBudget(p, left, counting);
+    }
+
     static boolean locked(Context ctx) {
         ensureDay(ctx);
         if (unlockedToday(ctx) || dailyMinutes(ctx) <= 0) return false;
-        return leftMs(ctx) <= 0;
+        long left = leftMs(ctx);
+        if (left > 0) return false;
+        // Freeze expiry in prefs so power-off cannot revive today's budget from a stale full remaining.
+        SharedPreferences p = prefs(ctx);
+        if (storedRemaining(p) > 0 || p.contains(ELAPSED_END) || p.getLong(UNTIL, 0L) > 0) {
+            writeBudget(p, 0L, false);
+        }
+        return true;
     }
 
     static boolean running(Context ctx) {
@@ -273,18 +292,15 @@ final class WatchTimer {
     static void pause(Context ctx) {
         SharedPreferences p = prefs(ctx);
         if (p.getInt(DAILY_MINUTES, 0) <= 0 || unlockedToday(ctx)) return;
-        long left = leftMs(ctx);
-        writeBudget(p, left, false);
+        writeBudget(p, leftMs(ctx), false);
     }
 
     /** Continue from the leftover budget when the screen is on. */
     static void resume(Context ctx) {
         ensureDay(ctx);
         if (dailyMinutes(ctx) <= 0 || unlockedToday(ctx) || !screenOn(ctx)) return;
-        SharedPreferences p = prefs(ctx);
-        long elapsedNow = SystemClock.elapsedRealtime();
-        if (sameBoot(elapsedNow, p.getLong(ELAPSED_END, 0L), p.getLong(ELAPSED_AT_SET, -1L))) return;
-        writeBudget(p, storedRemaining(p), true);
+        long left = leftMs(ctx);
+        writeBudget(prefs(ctx), left, left > 0);
     }
 
     /** Parent unlock after time is up: free for the rest of today; midnight starts a new day. */
@@ -350,10 +366,12 @@ final class WatchTimer {
             return;
         }
         if (!screenOn(ctx)) {
+            pause(ctx);
             handler.postDelayed(tick, untilMidnight);
             return;
         }
-        resume(ctx);
+        // Shrink remaining to match elapsed so standby/reboot cannot restore a full day.
+        persistLeft(ctx);
         long left = leftMs(ctx);
         if (left > 0) handler.postDelayed(tick, Math.min(left, untilMidnight));
         else handler.postDelayed(tick, untilMidnight);
