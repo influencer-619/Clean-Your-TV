@@ -29,6 +29,8 @@ final class WatchTimer {
     static final String DAILY_MINUTES = "daily_minutes";
     static final String DAY_KEY = "day_key";
     static final String UNLOCKED_DAY = "unlocked_day";
+    /** Calendar day when Time's up was reached; survives power-off until midnight. */
+    static final String EXPIRED_DAY = "expired_day";
     /** Milliseconds of watch time left today while paused, or last synced while counting. */
     static final String REMAINING = "remaining_ms";
     /** elapsedRealtime() deadline for the current boot; ignored after a reboot. */
@@ -109,8 +111,20 @@ final class WatchTimer {
         return fmt.format(new Date(wallNow));
     }
 
+    /** True only when a known previous day differs from today — empty day_key must not refill the budget. */
     static boolean needsDayRoll(String today, String storedDay, int dailyMinutes) {
-        return dailyMinutes > 0 && (storedDay == null || storedDay.isEmpty() || !today.equals(storedDay));
+        return dailyMinutes > 0 && storedDay != null && !storedDay.isEmpty() && !today.equals(storedDay);
+    }
+
+    static boolean needsDayBind(String today, String storedDay, int dailyMinutes) {
+        return dailyMinutes > 0 && (storedDay == null || storedDay.isEmpty());
+    }
+
+    /** Time's up sticks for this calendar day until midnight or PIN unlock. */
+    static boolean expiredToday(String today, String expiredDay, String unlockedDay) {
+        if (today == null || today.isEmpty()) return false;
+        if (today.equals(unlockedDay)) return false;
+        return today.equals(expiredDay);
     }
 
     /** Milliseconds until the next local midnight; at least 1 so a postDelayed always wakes later. */
@@ -209,8 +223,14 @@ final class WatchTimer {
         if (daily <= 0) return;
         long now = System.currentTimeMillis();
         String today = dayKey(now, TimeZone.getDefault());
-        if (!needsDayRoll(today, p.getString(DAY_KEY, ""), daily)) return;
-        p.edit().putString(DAY_KEY, today).remove(UNLOCKED_DAY).apply();
+        String stored = p.getString(DAY_KEY, "");
+        if (needsDayBind(today, stored, daily)) {
+            // Claim today without refilling — empty day_key must not wipe Time's up.
+            p.edit().putString(DAY_KEY, today).commit();
+            return;
+        }
+        if (!needsDayRoll(today, stored, daily)) return;
+        p.edit().putString(DAY_KEY, today).remove(UNLOCKED_DAY).remove(EXPIRED_DAY).commit();
         writeBudget(p, daily * 60_000L, screenOn(ctx));
     }
 
@@ -220,7 +240,15 @@ final class WatchTimer {
         return today.equals(prefs(ctx).getString(UNLOCKED_DAY, ""));
     }
 
+    static boolean expiredToday(Context ctx) {
+        long now = System.currentTimeMillis();
+        String today = dayKey(now, TimeZone.getDefault());
+        SharedPreferences p = prefs(ctx);
+        return expiredToday(today, p.getString(EXPIRED_DAY, ""), p.getString(UNLOCKED_DAY, ""));
+    }
+
     static long leftMs(Context ctx) {
+        if (expiredToday(ctx)) return 0L;
         SharedPreferences p = prefs(ctx);
         return leftMs(storedRemaining(p), SystemClock.elapsedRealtime(),
                 p.getLong(ELAPSED_END, 0L), p.getLong(ELAPSED_AT_SET, -1L));
@@ -233,33 +261,49 @@ final class WatchTimer {
     static void persistLeft(Context ctx) {
         SharedPreferences p = prefs(ctx);
         if (p.getInt(DAILY_MINUTES, 0) <= 0 || unlockedToday(ctx)) return;
+        if (expiredToday(ctx)) {
+            writeBudget(p, 0L, false);
+            return;
+        }
         long left = leftMs(ctx);
         boolean counting = left > 0 && screenOn(ctx);
         writeBudget(p, left, counting);
+        if (left <= 0) markExpired(ctx);
+    }
+
+    /** Remember Time's up for today so power-off cannot clear the lock before midnight. */
+    static void markExpired(Context ctx) {
+        long now = System.currentTimeMillis();
+        String today = dayKey(now, TimeZone.getDefault());
+        prefs(ctx).edit()
+                .putString(EXPIRED_DAY, today)
+                .putString(DAY_KEY, today)
+                .putLong(REMAINING, 0L)
+                .putLong(UNTIL, 0L)
+                .remove(ELAPSED_END)
+                .remove(ELAPSED_AT_SET)
+                .commit();
     }
 
     static boolean locked(Context ctx) {
         ensureDay(ctx);
         if (unlockedToday(ctx) || dailyMinutes(ctx) <= 0) return false;
+        if (expiredToday(ctx)) return true;
         long left = leftMs(ctx);
         if (left > 0) return false;
-        // Freeze expiry in prefs so power-off cannot revive today's budget from a stale full remaining.
-        SharedPreferences p = prefs(ctx);
-        if (storedRemaining(p) > 0 || p.contains(ELAPSED_END) || p.getLong(UNTIL, 0L) > 0) {
-            writeBudget(p, 0L, false);
-        }
+        markExpired(ctx);
         return true;
     }
 
     static boolean running(Context ctx) {
         ensureDay(ctx);
-        if (unlockedToday(ctx) || dailyMinutes(ctx) <= 0) return false;
+        if (unlockedToday(ctx) || dailyMinutes(ctx) <= 0 || expiredToday(ctx)) return false;
         return leftMs(ctx) > 0;
     }
 
     static long leftMinutes(Context ctx) {
         ensureDay(ctx);
-        if (unlockedToday(ctx)) return 0;
+        if (unlockedToday(ctx) || expiredToday(ctx)) return 0;
         long left = leftMs(ctx);
         if (left <= 0) return 0;
         return (left + 59_999L) / 60_000L;
@@ -273,34 +317,47 @@ final class WatchTimer {
     static void setDailyMinutes(Context ctx, int minutes) {
         SharedPreferences p = prefs(ctx);
         if (minutes <= 0) {
-            p.edit().putInt(DAILY_MINUTES, 0).remove(DAY_KEY).remove(UNLOCKED_DAY).apply();
+            p.edit().putInt(DAILY_MINUTES, 0).remove(DAY_KEY).remove(UNLOCKED_DAY).remove(EXPIRED_DAY).commit();
             writeBudget(p, 0L, false);
             return;
         }
         long now = System.currentTimeMillis();
         String today = dayKey(now, TimeZone.getDefault());
-        p.edit().putInt(DAILY_MINUTES, minutes).putString(DAY_KEY, today).remove(UNLOCKED_DAY).apply();
+        p.edit().putInt(DAILY_MINUTES, minutes).putString(DAY_KEY, today)
+                .remove(UNLOCKED_DAY).remove(EXPIRED_DAY).commit();
         writeBudget(p, minutes * 60_000L, screenOn(ctx));
     }
 
     static void setUntil(Context ctx, long until) {
         long left = until <= 0 ? 0L : Math.max(0L, until - System.currentTimeMillis());
         writeBudget(prefs(ctx), left, left > 0 && screenOn(ctx));
+        if (left <= 0 && dailyMinutes(ctx) > 0) markExpired(ctx);
     }
 
     /** Freeze the leftover budget; standby must not burn watch time. */
     static void pause(Context ctx) {
         SharedPreferences p = prefs(ctx);
         if (p.getInt(DAILY_MINUTES, 0) <= 0 || unlockedToday(ctx)) return;
-        writeBudget(p, leftMs(ctx), false);
+        if (expiredToday(ctx)) {
+            writeBudget(p, 0L, false);
+            return;
+        }
+        long left = leftMs(ctx);
+        writeBudget(p, left, false);
+        if (left <= 0) markExpired(ctx);
     }
 
     /** Continue from the leftover budget when the screen is on. */
     static void resume(Context ctx) {
         ensureDay(ctx);
         if (dailyMinutes(ctx) <= 0 || unlockedToday(ctx) || !screenOn(ctx)) return;
+        if (expiredToday(ctx)) {
+            writeBudget(prefs(ctx), 0L, false);
+            return;
+        }
         long left = leftMs(ctx);
         writeBudget(prefs(ctx), left, left > 0);
+        if (left <= 0) markExpired(ctx);
     }
 
     /** Parent unlock after time is up: free for the rest of today; midnight starts a new day. */
@@ -309,9 +366,9 @@ final class WatchTimer {
         long now = System.currentTimeMillis();
         String today = dayKey(now, TimeZone.getDefault());
         SharedPreferences p = prefs(ctx);
-        SharedPreferences.Editor edit = p.edit().putString(UNLOCKED_DAY, today);
+        SharedPreferences.Editor edit = p.edit().putString(UNLOCKED_DAY, today).remove(EXPIRED_DAY);
         if (p.getInt(DAILY_MINUTES, 0) <= 0) edit.putInt(DAILY_MINUTES, 0);
-        edit.apply();
+        edit.commit();
         writeBudget(p, 0L, false);
     }
 
@@ -320,12 +377,14 @@ final class WatchTimer {
         SharedPreferences.Editor edit = p.edit().putLong(REMAINING, rem);
         if (counting && rem > 0) {
             long elapsed = SystemClock.elapsedRealtime();
-            edit.putLong(ELAPSED_END, elapsed + rem).putLong(ELAPSED_AT_SET, elapsed)
+            edit.remove(EXPIRED_DAY)
+                    .putLong(ELAPSED_END, elapsed + rem).putLong(ELAPSED_AT_SET, elapsed)
                     .putLong(UNTIL, System.currentTimeMillis() + rem);
         } else {
             edit.putLong(UNTIL, 0L).remove(ELAPSED_END).remove(ELAPSED_AT_SET);
         }
-        edit.apply();
+        // commit so a power cut right after Time's up cannot lose the leftover / expiry.
+        edit.commit();
     }
 
     static void setPin(Context ctx, String pin) {
@@ -346,8 +405,8 @@ final class WatchTimer {
 
     static void clearSecrets(Context ctx) {
         prefs(ctx).edit().remove(PIN).remove(RECOVERY)
-                .putInt(DAILY_MINUTES, 0).remove(DAY_KEY).remove(UNLOCKED_DAY)
-                .putLong(REMAINING, 0L).putLong(UNTIL, 0L).remove(ELAPSED_END).remove(ELAPSED_AT_SET).apply();
+                .putInt(DAILY_MINUTES, 0).remove(DAY_KEY).remove(UNLOCKED_DAY).remove(EXPIRED_DAY)
+                .putLong(REMAINING, 0L).putLong(UNTIL, 0L).remove(ELAPSED_END).remove(ELAPSED_AT_SET).commit();
     }
 
     /**

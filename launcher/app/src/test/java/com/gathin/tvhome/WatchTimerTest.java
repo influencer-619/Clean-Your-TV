@@ -94,7 +94,17 @@ public class WatchTimerTest {
         assertTrue(WatchTimer.needsDayRoll("2026-11-13", "2026-11-12", 180));
         assertFalse(WatchTimer.needsDayRoll("2026-11-12", "2026-11-12", 180));
         assertFalse(WatchTimer.needsDayRoll("2026-11-13", "2026-11-12", 0));
-        assertTrue(WatchTimer.needsDayRoll("2026-11-12", "", 30));
+        // Empty day_key only binds the date; it must not look like a midnight roll.
+        assertFalse(WatchTimer.needsDayRoll("2026-11-12", "", 30));
+        assertTrue(WatchTimer.needsDayBind("2026-11-12", "", 30));
+        assertFalse(WatchTimer.needsDayBind("2026-11-12", "2026-11-12", 30));
+    }
+
+    @Test public void expiredTodaySticksUntilMidnightOrUnlock() {
+        assertTrue(WatchTimer.expiredToday("2026-11-18", "2026-11-18", ""));
+        assertFalse(WatchTimer.expiredToday("2026-11-18", "2026-11-18", "2026-11-18"));
+        assertFalse(WatchTimer.expiredToday("2026-11-19", "2026-11-18", ""));
+        assertFalse(WatchTimer.expiredToday("2026-11-18", "", ""));
     }
 
     @Test public void dayKeyUsesTheGivenTimeZone() {
